@@ -11,6 +11,7 @@ import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,6 +52,7 @@ public class MainActivity extends Activity {
     private Switch switchRecording;
     private Button btnStartTest;
     private EditText txtClientId;
+    private RadioGroup rgTestType;
 
     private Boolean testInitiated = false;
 
@@ -61,6 +63,7 @@ public class MainActivity extends Activity {
             .create(WebService.class);
 
     private String recordId;
+    private String testType = "image";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +71,11 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         tvLog = findViewById(R.id.log);
+        btnStartTest = findViewById(R.id.start_test);
+        txtClientId = findViewById(R.id.client_id);
+
+        rgTestType = findViewById(R.id.rg_test_type);
+        rgTestType.check(R.id.rb_image);
 
         pingWebService();
 
@@ -79,24 +87,29 @@ public class MainActivity extends Activity {
                     new RecordAsyncTask().execute();
 
                     btnStartTest.setEnabled(true);
+                    rgTestType.setEnabled(true);
                 } else if (!switchRecording.isChecked()) {
                     btnStartTest.setEnabled(false);
+                    rgTestType.setEnabled(false);
                     INSTANT_UPLOAD = false;
                 }
             }
         });
 
-        txtClientId = findViewById(R.id.client_id);
-
-        btnStartTest = findViewById(R.id.start_test);
         btnStartTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                webService.startTest(new TestInfo(txtClientId.getText().toString(), recordId, TestType.IMAGE.name())).enqueue(new Callback<SimpleMessage>() {
+                int checkedId = rgTestType.getCheckedRadioButtonId();
+                testType = checkedId == R.id.rb_image ? TestType.image.name()
+                        : checkedId == R.id.rb_stroop ? TestType.stroop.name() : TestType.vr_image.name();
+
+                webService.startTest(new TestInfo(txtClientId.getText().toString(), recordId, testType))
+                        .enqueue(new Callback<SimpleMessage>() {
                     @Override
                     public void onResponse(Call<SimpleMessage> call, Response<SimpleMessage> response) {
                         if (response.isSuccessful()) {
                             btnStartTest.setEnabled(false);
+                            rgTestType.setEnabled(false);
                             INSTANT_UPLOAD = true;
 
                             appendLog("\nStarted test!");
@@ -266,7 +279,7 @@ public class MainActivity extends Activity {
                     reading.setFrames(frames);
 
                     // upload reading
-                    webService.uploadReading(recordId, reading).enqueue(new Callback<Void>() {
+                    webService.uploadReading(testType, recordId, reading).enqueue(new Callback<Void>() {
                         @Override
                         public void onResponse(Call<Void> call, Response<Void> response) {
                             if (!response.isSuccessful()) {
@@ -285,7 +298,7 @@ public class MainActivity extends Activity {
             publishProgressMessage("Stopped reading.");
 
             try {
-                Response<SimpleMessage> response = webService.stopRecord(recordId).execute();
+                Response<SimpleMessage> response = webService.stopRecord(testType, recordId).execute();
 
                 if (response.isSuccessful()) {
                     publishProgressMessage(response.body().getMessage());
@@ -293,11 +306,13 @@ public class MainActivity extends Activity {
                 } else {
                     //TODO
                     publishProgressMessage("Could not finalize record!");
+                    cancel(true);
                 }
 
             } catch (IOException e) {
                 //TODO
                 publishProgressMessage("Could not finalize record!");
+                cancel(true);
             }
         }
 

@@ -14,13 +14,13 @@ public interface WebService {
     @POST("/start-test")
     Call<SimpleMessage> startTest(@Body TestInfo testInfo);
 
-    @POST("/records")
+    @POST("/records/{test}")
     Call<ServerResponse<CreateRecordResponse>> createRecord(@Body BitalinoDeviceInfo deviceInfo);
 
-    @PUT("/records/{recordId}")
-    Call<Void> uploadReading(@Path("recordId") String recordId, @Body BITalinoReading reading);
+    @PUT("/records/{test}/{recordId}")
+    Call<Void> uploadReading(@Path("test") String test, @Path("recordId") String recordId, @Body BITalinoReading reading);
 
-    @PUT("/records/{recordId}/stop")
-    Call<SimpleMessage> stopRecord(@Path("recordId") String recordId);
+    @PUT("/records/{test}/{recordId}/stop")
+    Call<SimpleMessage> stopRecord(@Path("test") String test, @Path("recordId") String recordId);
 
 }

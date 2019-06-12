@@ -1,6 +1,7 @@
 package com.acoustic.bitalino;
 
 public enum TestType {
-    IMAGE,
-    STROOP
+    image,
+    stroop,
+    vr_image
 }
